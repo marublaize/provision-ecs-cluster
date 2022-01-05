@@ -4,11 +4,6 @@ resource "aws_ecs_cluster" "main" {
 
 resource "aws_cloudwatch_log_group" "main" {
   name = "${var.container_name}-logs"
-
-  tags = {
-    Environment = "production"
-    Application = "serviceA"
-  }
 }
 
 resource "aws_ecs_service" "main" {
@@ -20,7 +15,7 @@ resource "aws_ecs_service" "main" {
   launch_type     = "FARGATE"
 
   network_configuration {
-      subnets           = var.private_subnets.*
+      subnets           = module.vpc.private_subnets
       security_groups   = [aws_security_group.task_sg.id]
   }
   load_balancer {
@@ -32,7 +27,7 @@ resource "aws_ecs_service" "main" {
 
 resource "aws_security_group" "task_sg" {
   name        = "${var.container_name}-sg"
-  vpc_id      = var.vpc_id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     from_port        = 80
@@ -136,7 +131,7 @@ resource "aws_iam_role" "main" {
 
 resource "aws_security_group" "lb_sg" {
   name        = "${var.cluster_name}-lb-sg"
-  vpc_id      = var.vpc_id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     from_port        = 80
@@ -160,7 +155,7 @@ resource "aws_lb_target_group" "main" {
   port        = 80
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = var.vpc_id
+  vpc_id      = module.vpc.vpc_id
 
   health_check {
     healthy_threshold   = "3"
@@ -178,7 +173,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb_sg.id]
-  subnets            = var.public_subnets.*
+  subnets            = module.vpc.public_subnets
 
   enable_deletion_protection = false
 }
